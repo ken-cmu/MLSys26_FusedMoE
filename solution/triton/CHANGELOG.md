@@ -1,6 +1,27 @@
 # Triton Kernel Changelog
 
-## v3 — Autotuned GEMM tile sizes (current)
+## v4 — Fused routing kernel (current)
+
+**Optimization:** Replace 6+ sequential PyTorch routing ops with a single Triton kernel (`_routing_kernel`) — one GPU program per token.
+
+**What changed:**
+- Added `_routing_kernel`: each CTA handles one token and executes the full DeepSeek-V3 routing pipeline in registers:
+  1. `sigmoid(logits) + bias` → biased scores [256]
+  2. Reshape to [8, 32] groups, sort each group descending, sum top-2 → group scores [8]
+  3. Sort group scores, take threshold at rank 4 → group selection mask [8]
+  4. Broadcast mask to [256], zero out non-selected experts
+  5. `argsort` → take top-8 expert indices
+  6. Gather unbiased sigmoid values for selected experts via [8, 256] broadcast comparison
+  7. Normalize and scale weights
+- Routing output is now compact **[T, 8]** (int32 indices + float32 weights) instead of sparse [T, 256].
+  For T=1024: 32 KB vs 1 MB — eliminates 32× larger intermediate tensor.
+- Per-expert weight extraction: `(topk_w[tok_idx] * (topk_idx[tok_idx] == ge)).sum(1)` replaces `weights[tok_idx, ge]`.
+
+**GEMM kernels and SwiGLU are unchanged from v3 (still autotuned).**
+
+---
+
+## v3 — Autotuned GEMM tile sizes (superseded by v4)
 
 **Optimization:** Autotuning over BLOCK_M, num_warps, and num_stages for both GEMM kernels.
 
