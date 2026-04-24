@@ -1,0 +1,27 @@
+Workload     Status       Latency (ms)     vs FlashInfer    abs_err
+----------------------------------------------------------------------
+1a4c6ba1     PASSED       19.4161          1.006x           0.00e+00
+2e69caee     PASSED       11.1918          1.002x           0.00e+00
+4822167c     PASSED       14.5559          1.004x           0.00e+00
+58a34f27     PASSED       34.9102          1.001x           0.00e+00
+5e8dc11c     PASSED       44.5096          1.001x           0.00e+00
+5eadab1e     PASSED       13.3696          1.001x           0.00e+00
+6230e838     PASSED       13.4651          1.009x           0.00e+00
+74d7ff04     PASSED       14.4242          1.005x           0.00e+00
+76010cb4     PASSED       13.8541          1.004x           0.00e+00
+81955b1e     PASSED       14.0494          1.008x           0.00e+00
+8cba5890     PASSED       12.0329          1.002x           0.00e+00
+8f1ff9f1     PASSED       15.4580          1.007x           0.00e+00
+a7c2bcfd     PASSED       12.2400          1.007x           0.00e+00
+b8f4f012     PASSED       11.2773          1.010x           0.00e+00
+e05c6c03     PASSED       10.8097          1.003x           0.00e+00
+e626d3e6     PASSED       14.8921          1.005x           0.00e+00
+eedc63b2     PASSED       13.2714          1.000x           0.00e+00
+f7d6ac7c     PASSED       12.8914          1.005x           0.00e+00
+fc378037     PASSED       14.1435          1.006x           0.00e+00
+
+Summary (19 workloads):
+  Latency — min: 10.8097 ms  max: 44.5096 ms  median: 13.8541 ms
+  Speedup — min: 1.000x  max: 1.010x  mean: 1.005x
+  (speedup < 1.0 means slower than FlashInfer baseline — expected for 
+pure Python)
