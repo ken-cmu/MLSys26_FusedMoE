@@ -1,6 +1,26 @@
 # Triton Kernel Changelog
 
-## v2 — Fuse SwiGLU into GEMM1 epilogue (current)
+## v3 — Autotuned GEMM tile sizes (current)
+
+**Optimization:** Autotuning over BLOCK_M, num_warps, and num_stages for both GEMM kernels.
+
+**What changed:** Added `@triton.autotune` to both `_fp8_fp8_gemm` and `_f32_fp8_gemm`. A search space of 16 configs is explored per distinct (M, N, K) shape:
+- `BLOCK_M` ∈ {16, 32, 64, 128}
+- `num_warps` ∈ {4, 8}
+- `num_stages` ∈ {3, 4}
+
+`BLOCK_N=128` and `BLOCK_K=128` are held fixed to keep FP8 block-scale indexing exact. The grid uses `lambda meta:` to read the autotuned `BLOCK_M` at launch time.
+
+**Algorithm is identical to v1** — FP8 GEMM kernels + SwiGLU in PyTorch + Python routing. This is a pure tile-size optimization.
+
+**Results (19 workloads, all PASSED):**
+- Latency — min: 2.20 ms, max: 17.80 ms, median: 7.01 ms
+- Speedup — min: 1.807x, max: 4.945x, **mean: 2.486x**
+- Improvement over v1: +0.10x mean speedup (2.385x → 2.486x), median latency 7.60 ms → 7.01 ms
+
+---
+
+## v2 — Fuse SwiGLU into GEMM1 epilogue (superseded — regressed vs v1)
 
 **Optimization:** §3.3 / checklist item "SwiGLU: Fuse with GEMM2 (don't write GEMM1 output to memory)".
 
@@ -18,7 +38,7 @@ z = silu(acc_up) * acc_gate   →   write [Tk, I] float32
 
 ---
 
-## v1 — Basic Triton FP8 GEMM (superseded by v2)
+## v1 — Basic Triton FP8 GEMM (superseded by v3)
 
 **Strategy:** Keep routing and accumulation in PyTorch; replace the two GEMMs with custom Triton kernels that fuse FP8 block-scale dequantization directly into the matrix multiply.
 
@@ -34,6 +54,10 @@ z = silu(acc_up) * acc_gate   →   write [Tk, I] float32
 
 **What's better than the Python reference:**
 - The GEMMs run as GPU-parallel Triton kernels rather than sequential PyTorch matmuls over float32-expanded weights — avoids materializing the full dequantized `[E, 2I, H]` weight tensors in memory.
+
+**Results (19 workloads, all PASSED):**
+- Latency — min: 2.25 ms, max: 19.59 ms, median: 7.60 ms
+- Speedup — min: 1.752x, max: 4.877x, **mean: 2.385x**
 
 **Known limitations / next steps:**
 - Routing is still pure PyTorch with sequential Python overhead.
